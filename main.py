@@ -1,4 +1,5 @@
 import numpy as np
+from itertools import combinations
 
 
 ###1.1. Реализовать функцию REF(), приводящую матрицу к ступенчатому виду.
@@ -135,6 +136,125 @@ def Linear():
     print("\nMatrix H:\n", H)
 
 
+def CodeWords():
+    G = np.array([[1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1],
+                  [0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0],
+                  [0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1],
+                  [0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0],
+                  [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1]])
+    H = np.array([[0, 1, 1, 1, 1, 0],
+                  [1, 0, 0, 0, 0, 0],
+                  [0, 1, 0, 0, 0, 0],
+                  [0, 0, 1, 0, 1, 1],
+                  [0, 0, 0, 1, 0, 1],
+                  [0, 0, 1, 0, 0, 0],
+                  [0, 0, 0, 0, 1, 0],
+                  [0, 0, 0, 1, 0, 0],
+                  [0, 0, 0, 0, 1, 1],
+                  [0, 0, 0, 0, 1, 0],
+                  [0, 0, 0, 0, 0, 1]])
+
+    M = np.array([[0, 1, 0, 0],  # строка 1
+                  [0, 0, 1, 1],  # строка 2
+                  [1, 1, 0, 0]])  # строка 4
+    # Получаем все комбинации строк
+    n = M.shape[0]
+    xor_results = []
+    spisok = []
+    # Выполняем XOR для всех комбинаций из 2 и более строк
+    for r in range(2, n + 1):  # от 2 до n строк (включительно)
+        for indices in combinations(range(n), r):  # получаем все комбинации
+            result = np.zeros(M.shape[1], dtype=int)  # инициализируем результат
+            for index in indices:  # для каждой выбранной строки
+                result = np.bitwise_xor(result, M[index])
+            xor_results.append(result)
+
+    print(*xor_results)
+
+    # 1.4.2 Взять все двоичные слова длины k, умножить каждое на G.
+    u = np.array([1, 0, 1, 1, 0])
+    print('u = ', u)
+
+    v = np.dot(u,G)
+    v %= 2
+    print('v = u@G ', v)
+
+    check = np.dot(v, H)
+    check %= 2
+    print('v@H =', check)
+
+
+    # 1.5 Вычислить кодовое расстояние получившегося кода
+    n = len(G[0])
+    k = len(G)
+    print(f'n={n}\nnk={k}')
+
+    # Вычисляем кодовое расстояние
+    min_weight = float('inf')
+
+    for r in range(1, k + 1):
+        for combo in ((G[i] for i in range(r, len(G))) for _ in range(k)):
+            combined = np.zeros(n)
+            for row in combo:
+                for j in range(n):
+                    combined[j] = (combined[j] + row[j]) % 2
+
+            weight = sum(combined)
+            if 0 < weight < min_weight:
+                min_weight = weight
+
+    d = min_weight
+    t = (d - 1)
+    print(f"d={d}")
+    print(f"t={t}")
+
+    # Дополнительная проверка
+    if d <= 0 or d > k:
+        print("Предупреждение: Некорректное кодовое расстояние")
+
+    # 1.4.1 Внести в кодовое слово ошибку кратности не более t, умножить полученное слово на H, убедиться в обнаружении ошибки.
+    v = np.array([1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0])
+    e1 = np.array([0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0])
+    Ve1 = (v + e1) % 2
+    print('v+e1', Ve1)
+    check = np.dot(Ve1, H)
+    check %= 2
+    print('(v+e1)@H =', check, "- error")
+
+
+    # 1.4.2 Найти для некоторого кодового слова ошибку кратности t+1 такую, что при умножении на H ошибка не может быть обнаружена.
+    def find_e2(v, H):
+        # Перебираем все пары позиций в кодовом слове
+        for i in range(len(v) - 1):
+            for j in range(i + 1, len(v)):
+                # Создаем вектор ошибки e2
+                #перебираем все возможные пары индексов
+                e2 = np.zeros(len(v), dtype=int)
+                e2[i] = 1
+                e2[j] = 1
+                e2 = np.array(e2)
+                VE2 = (v + e2) % 2 #Создание вектора с ошибкой
+                check = np.dot(VE2, H)
+                check %= 2 #Проверка обнаружения ошибки
+                a = 0
+                for k in range(0, len(check)): #Если a состоит только из нулей, то ошибка не обнаружена
+                    if check[k] == 0:
+                        a += 1
+                if a == len(check):
+                    return e2
+        return None
+
+    e2 = find_e2(v, H)
+    print('e2', e2)
+
+    Ve2 = (v + e2) % 2
+    print('v+e2', Ve2)
+
+    check = np.dot(Ve2, H)
+    check %= 2
+    print('(v+e2)@H =', check, "- no error")
+
+
 
 def main():
     # Example usage
@@ -148,6 +268,7 @@ def main():
     print("result1:\n", result1, "\nresult2:\n", result2, "\n")
     Linear()
 
+    CodeWords()
 
 
 if __name__ == '__main__':
